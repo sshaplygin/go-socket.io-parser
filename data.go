@@ -20,11 +20,10 @@ const (
 	Ack
 	// Error type
 	Error
-
 	// BinaryEvent type
-	binaryEvent
+	BinaryEvent
 	// BinaryAck type
-	binaryAck
+	BinaryAck
 )
 
 // Header of packet
@@ -38,14 +37,17 @@ type Header struct {
 // Buffer is an binary buffer handler used in emit args. All buffers will be
 // sent as binary in the transport layer.
 type Buffer struct {
-	isBinary bool
-	num      uint64
+	json.Marshaler
+	json.Unmarshaler
+
+	IsBinary bool `json:"_placeholder"`
+	Num      uint64
 
 	Data []byte
 }
 
 // MarshalJSON marshals to JSON.
-func (a Buffer) MarshalJSON() ([]byte, error) {
+func (a *Buffer) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	if err := a.marshalJSONBuf(&buf); err != nil {
 		return nil, err
@@ -74,20 +76,15 @@ func (a *Buffer) encodeText(buf *bytes.Buffer) error {
 }
 
 func (a *Buffer) encodeBinary(buf *bytes.Buffer) error {
-	buf.WriteString("{\"_placeholder\":true,\"num\":")
-	buf.WriteString(strconv.FormatUint(a.num, 10))
-	buf.WriteString("}")
-	return nil
+	if b, err := json.Marshal(a); err != nil {
+		return err
+	}
+	return buf.WriteByte(b)
 }
 
 // UnmarshalJSON unmarshals from JSON.
 func (a *Buffer) UnmarshalJSON(b []byte) error {
-	var data struct {
-		Data        []byte
-		PlaceHolder bool `json:"_placeholder"`
-		Num         uint64
-	}
-	if err := json.Unmarshal(b, &data); err != nil {
+	if err := json.Unmarshal(b, a); err != nil {
 		return err
 	}
 	a.isBinary = data.PlaceHolder

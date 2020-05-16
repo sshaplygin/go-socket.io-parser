@@ -80,7 +80,7 @@ func (e *Encoder) writePacket(w io.WriteCloser, h Header, args []interface{}) ([
 		return nil, err
 	}
 
-	if h.Type == binaryAck || h.Type == binaryEvent {
+	if h.Type == BinaryAck || h.Type == BinaryEvent {
 		if err := e.writeUint64(bw, max); err != nil {
 			return nil, err
 		}

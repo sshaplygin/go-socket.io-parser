@@ -74,7 +74,7 @@ func (d *Decoder) DecodeHeader(header *Header, event *string) error {
 		return err
 	}
 	d.bufferCount = bufferCount
-	if header.Type == binaryEvent || header.Type == binaryAck {
+	if header.Type == BinaryEvent || header.Type == BinaryAck {
 		header.Type -= 3
 	}
 	d.isEvent = header.Type == Event
@@ -186,7 +186,7 @@ func (d *Decoder) readHeader(header *Header) (uint64, error) {
 		return 0, err
 	}
 	header.Type = Type(typ - '0')
-	if header.Type > binaryAck {
+	if header.Type > BinaryAck {
 		return 0, ErrInvalidPackageType
 	}
 
