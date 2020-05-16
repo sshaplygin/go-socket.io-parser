@@ -59,7 +59,7 @@ func (d *Decoder) DecodeHeader(header *Header, event *string) error {
 	if err != nil {
 		return err
 	}
-	if ft != engineio.TEXT {
+	if ft != TEXT {
 		return errors.New("first packet should be TEXT frame")
 	}
 	d.lastFrame = r
@@ -181,15 +181,13 @@ func (d *Decoder) readString(r byteReader, until byte) (string, error) {
 }
 
 func (d *Decoder) readHeader(header *Header) (uint64, error) {
-	// read type
-	var typ byte
 	typ, err := d.packetReader.ReadByte()
 	if err != nil {
 		return 0, err
 	}
 	header.Type = Type(typ - '0')
-	if header.Type >= typeMax {
-		return 0, errors.New("invalid packet type")
+	if header.Type > binaryAck {
+		return 0, ErrInvalidPackageType
 	}
 
 	num, hasNum, err := d.readUint64FromText(d.packetReader)
@@ -287,7 +285,7 @@ func (d *Decoder) readEvent(event *string) error {
 func (d *Decoder) readBuffer(ft engineio.FrameType, r io.ReadCloser) ([]byte, error) {
 	defer r.Close()
 	if ft != engineio.BINARY {
-		return nil, errors.New("buffer packet should be BINARY")
+		return nil, errors.New("packet should be BINARY")
 	}
 	return ioutil.ReadAll(r)
 }
@@ -300,7 +298,7 @@ func (d *Decoder) detachBuffer(v reflect.Value, buffers []Buffer) error {
 	case reflect.Struct:
 		if v.Type().Name() == "Buffer" {
 			if !v.CanAddr() {
-				return errors.New("can't get Buffer address")
+				return errors.New("can't get buffer address")
 			}
 			buffer := v.Addr().Interface().(*Buffer)
 			if buffer.isBinary {
