@@ -79,7 +79,7 @@ func (a *Buffer) encodeBinary(buf *bytes.Buffer) error {
 	if b, err := json.Marshal(a); err != nil {
 		return err
 	}
-	return buf.WriteByte(b)
+	return buf.Write(b)
 }
 
 // UnmarshalJSON unmarshals from JSON.
