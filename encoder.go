@@ -3,30 +3,31 @@ package parser
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
 	"io"
 	"reflect"
-
-	engineio "github.com/googollee/go-engine.io"
 )
 
+// FrameWriter
 type FrameWriter interface {
-	NextWriter(ft engineio.FrameType) (io.WriteCloser, error)
+	NextWriter(ft FrameType) (io.WriteCloser, error)
 }
 
+// Encoder
 type Encoder struct {
-	w FrameWriter
+	fw FrameWriter
 }
 
-func NewEncoder(w FrameWriter) *Encoder {
+// NewEncoder
+func NewEncoder(fw FrameWriter) *Encoder {
 	return &Encoder{
-		w: w,
+		fw: fw,
 	}
 }
 
+// todo: ref
 func (e *Encoder) Encode(h Header, args []interface{}) (err error) {
 	var w io.WriteCloser
-	w, err = e.w.NextWriter(engineio.TEXT)
+	w, err = e.fw.NextWriter(TEXT)
 	if err != nil {
 		return
 	}
@@ -39,7 +40,7 @@ func (e *Encoder) Encode(h Header, args []interface{}) (err error) {
 	}
 
 	for _, b := range buffers {
-		w, err = e.w.NextWriter(engineio.BINARY)
+		w, err = e.fw.NextWriter(BINARY)
 		if err != nil {
 			return
 		}
@@ -144,11 +145,11 @@ func (e *Encoder) attachBuffer(v reflect.Value, index *uint64) ([][]byte, error)
 	case reflect.Struct:
 		if v.Type().Name() == "Buffer" {
 			if !v.CanAddr() {
-				return nil, errors.New("can't get Buffer address")
+				return nil, ErrBufferAddress
 			}
 			buffer := v.Addr().Interface().(*Buffer)
-			buffer.num = *index
-			buffer.isBinary = true
+			buffer.Num = *index
+			buffer.IsBinary = true
 			ret = append(ret, buffer.Data)
 			*index++
 		} else {

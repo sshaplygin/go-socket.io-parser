@@ -6,20 +6,19 @@ import (
 	"reflect"
 	"testing"
 
-	engineio "github.com/googollee/go-engine.io"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 type fakeWriter struct {
-	typ     engineio.FrameType
 	current *bytes.Buffer
-	types   []engineio.FrameType
-	bufs    []*bytes.Buffer
+
+	typ   FrameType
+	types []FrameType
+	bufs  []*bytes.Buffer
 }
 
-func (w *fakeWriter) NextWriter(ft engineio.FrameType) (io.WriteCloser, error) {
+func (w *fakeWriter) NextWriter(ft FrameType) (io.WriteCloser, error) {
 	w.current = bytes.NewBuffer(nil)
 	w.typ = ft
 	return w, nil
@@ -53,11 +52,11 @@ func TestEncoder(t *testing.T) {
 			must.Equal(len(test.Datas), len(w.bufs))
 			for i := range w.types {
 				if i == 0 {
-					should.Equal(engineio.TEXT, w.types[i])
+					should.Equal(TEXT, w.types[i])
 					should.Equal(string(test.Datas[i]), string(w.bufs[i].Bytes()))
 					continue
 				}
-				should.Equal(engineio.BINARY, w.types[i])
+				should.Equal(BINARY, w.types[i])
 				should.Equal(test.Datas[i], w.bufs[i].Bytes())
 			}
 		})

@@ -9,29 +9,31 @@ import (
 	"io/ioutil"
 	"reflect"
 	"strings"
-
-	engineio "github.com/googollee/go-engine.io"
 )
 
+// FrameReader
 type FrameReader interface {
-	NextReader() (engineio.FrameType, io.ReadCloser, error)
+	NextReader() (FrameType, io.ReadCloser, error)
 }
 
+// Decoder
 type Decoder struct {
-	r FrameReader
-
+	fr           FrameReader
 	lastFrame    io.ReadCloser
 	packetReader byteReader
-	bufferCount  uint64
-	isEvent      bool
+
+	bufferCount uint64
+	isEvent     bool
 }
 
-func NewDecoder(r FrameReader) *Decoder {
+// NewDecoder
+func NewDecoder(fr FrameReader) *Decoder {
 	return &Decoder{
-		r: r,
+		fr: fr,
 	}
 }
 
+// Close
 func (d *Decoder) Close() error {
 	if d.lastFrame != nil {
 		d.lastFrame.Close()
@@ -46,16 +48,19 @@ type byteReader interface {
 	UnreadByte() error
 }
 
-func (d *Decoder) DiscardLast() (err error) {
+// DiscardLast
+func (d *Decoder) DiscardLast() error {
 	if d.lastFrame != nil {
-		err = d.lastFrame.Close()
+		err := d.lastFrame.Close()
 		d.lastFrame = nil
+		return err
 	}
-	return
+	return nil
 }
 
+// DecodeHeader
 func (d *Decoder) DecodeHeader(header *Header, event *string) error {
-	ft, r, err := d.r.NextReader()
+	ft, r, err := d.fr.NextReader()
 	if err != nil {
 		return err
 	}
@@ -122,7 +127,7 @@ func (d *Decoder) DecodeArgs(types []reflect.Type) ([]reflect.Value, error) {
 
 	buffers := make([]Buffer, d.bufferCount)
 	for i := range buffers {
-		ft, r, err := d.r.NextReader()
+		ft, r, err := d.fr.NextReader()
 		if err != nil {
 			return nil, err
 		}
@@ -282,10 +287,10 @@ func (d *Decoder) readEvent(event *string) error {
 	return json.Unmarshal(buf.Bytes(), event)
 }
 
-func (d *Decoder) readBuffer(ft engineio.FrameType, r io.ReadCloser) ([]byte, error) {
+func (d *Decoder) readBuffer(ft FrameType, r io.ReadCloser) ([]byte, error) {
 	defer r.Close()
-	if ft != engineio.BINARY {
-		return nil, errors.New("packet should be BINARY")
+	if ft != BINARY {
+		return nil, ErrShouldBinaryPackageType
 	}
 	return ioutil.ReadAll(r)
 }
@@ -298,11 +303,11 @@ func (d *Decoder) detachBuffer(v reflect.Value, buffers []Buffer) error {
 	case reflect.Struct:
 		if v.Type().Name() == "Buffer" {
 			if !v.CanAddr() {
-				return errors.New("can't get buffer address")
+				return ErrBufferAddress
 			}
 			buffer := v.Addr().Interface().(*Buffer)
-			if buffer.isBinary {
-				*buffer = buffers[buffer.num]
+			if buffer.IsBinary {
+				*buffer = buffers[buffer.Num]
 			}
 			return nil
 		}

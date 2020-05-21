@@ -6,26 +6,24 @@ import (
 	"reflect"
 	"testing"
 
-	engineio "github.com/googollee/go-engine.io"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 type fakeReader struct {
-	datas [][]byte
 	index int
+	datas [][]byte
 	buf   *bytes.Buffer
 }
 
-func (r *fakeReader) NextReader() (engineio.FrameType, io.ReadCloser, error) {
+func (r *fakeReader) NextReader() (FrameType, io.ReadCloser, error) {
 	if r.index >= len(r.datas) {
 		return 0, nil, io.EOF
 	}
 	r.buf = bytes.NewBuffer(r.datas[r.index])
-	ft := engineio.BINARY
+	ft := BINARY
 	if r.index == 0 {
-		ft = engineio.TEXT
+		ft = TEXT
 	}
 	return ft, r, nil
 }
