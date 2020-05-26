@@ -1,18 +1,19 @@
 package parser
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var attachmentTests = []struct {
+type attachmentTest struct {
 	buffer         Buffer
 	textEncoding   string
 	binaryEncoding string
-}{
+}
+
+var attachmentTests = []attachmentTest{
 	{
 		Buffer{
 			IsBinary: false,
@@ -21,6 +22,23 @@ var attachmentTests = []struct {
 		},
 		`{"type":"Buffer","data":[1,255]}`,
 		`{"_placeholder":true,"num":0}`,
+	},
+	{
+		Buffer{
+			IsBinary: true,
+			Num:      0,
+			Data:     []byte{1, 255},
+		},
+		`{"type":"Buffer","data":[1,255]}`,
+		`{"_placeholder":true,"num":0}`,
+	}, {
+		Buffer{
+			IsBinary: true,
+			Num:      2,
+			Data:     []byte{3, 44},
+		},
+		`{"type":"Buffer","data":[3,44]}`,
+		`{"_placeholder":true,"num":2}`,
 	},
 	{
 		Buffer{
@@ -49,8 +67,9 @@ func TestAttachmentEncodeText(t *testing.T) {
 	for _, test := range attachmentTests {
 		b := test.buffer
 		b.IsBinary = false
-		j, err := json.Marshal(b)
+		j, err := b.Marshal()
 		must.Nil(err)
+		t.Log(test.textEncoding, string(j))
 		should.Equal(test.textEncoding, string(j))
 	}
 }
@@ -60,11 +79,12 @@ func TestAttachmentEncodeBinary(t *testing.T) {
 	must := require.New(t)
 
 	for _, test := range attachmentTests {
-		a := test.buffer
-		a.IsBinary = true
-		j, err := json.Marshal(a)
+		b := test.buffer
+		b.IsBinary = false
+		j, err := b.Marshal()
 		must.Nil(err)
-		should.Equal(test.binaryEncoding, string(j))
+		t.Log(test.textEncoding, string(j))
+		should.Equal(test.textEncoding, string(j))
 	}
 }
 
@@ -74,7 +94,7 @@ func TestAttachmentDecodeText(t *testing.T) {
 
 	for _, test := range attachmentTests {
 		var a Buffer
-		err := json.Unmarshal([]byte(test.textEncoding), &a)
+		err := a.Unmarshal([]byte(test.textEncoding))
 		must.Nil(err)
 		should.False(a.IsBinary)
 		if len(test.buffer.Data) == 0 {
@@ -91,7 +111,7 @@ func TestAttachmentDecodeBinary(t *testing.T) {
 
 	for _, test := range attachmentTests {
 		var a Buffer
-		err := json.Unmarshal([]byte(test.binaryEncoding), &a)
+		err := a.Unmarshal([]byte(test.binaryEncoding))
 		must.Nil(err)
 		should.True(a.IsBinary)
 		should.Equal(test.buffer.Num, a.Num)

@@ -9,17 +9,14 @@ import (
 // Buffer is an binary buffer handler used in emit args. All buffers will be
 // sent as binary in the transport layer.
 type Buffer struct {
-	json.Marshaler
-	json.Unmarshaler
+	IsBinary bool   `json:"_placeholder"`
+	Num      uint64 `json:"num"`
 
-	IsBinary bool `json:"_placeholder"`
-	Num      uint64
-
-	Data []byte
+	Data []byte `json:"data,omitempty"`
 }
 
-// MarshalJSON marshals to JSON.
-func (b *Buffer) MarshalJSON() ([]byte, error) {
+// Marshal marshals to JSON.
+func (b *Buffer) Marshal() ([]byte, error) {
 	var buf bytes.Buffer
 	if err := b.marshalJSONBuf(&buf); err != nil {
 		return nil, err
@@ -56,8 +53,8 @@ func (b *Buffer) encodeBinary(buf *bytes.Buffer) error {
 	return err
 }
 
-// UnmarshalJSON unmarshals from JSON.
-func (b *Buffer) UnmarshalJSON(data []byte) error {
+// Unmarshal unmarshal from JSON.
+func (b *Buffer) Unmarshal(data []byte) error {
 	if err := json.Unmarshal(data, b); err != nil {
 		return err
 	}

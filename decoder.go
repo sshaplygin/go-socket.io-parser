@@ -111,13 +111,13 @@ func (d *Decoder) DecodeArgs(types []reflect.Type) ([]reflect.Value, error) {
 		if err == io.EOF {
 			err = nil
 		}
-		d.DiscardLast()
+		_ = d.DiscardLast()
 		return nil, err
 	}
 
 	//we can't use defer or call DiscardLast before decoding, because
 	//there are buffered readers involved and if we invoke .Close() json will encounter unexpected EOF.
-	d.DiscardLast()
+	_ = d.DiscardLast()
 
 	for i, typ := range types {
 		if typ.Kind() != reflect.Ptr {
@@ -231,7 +231,7 @@ func (d *Decoder) readHeader(header *Header) (uint64, error) {
 		return bufferCount, err
 	}
 	if nextByte == '/' {
-		d.packetReader.UnreadByte()
+		_ = d.packetReader.UnreadByte()
 		header.Namespace, err = d.readString(d.packetReader, ',')
 		if err != nil {
 			if err == io.EOF {
