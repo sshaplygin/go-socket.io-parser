@@ -156,8 +156,8 @@ func (d *Decoder) readUint64FromText(r byteReader) (uint64, bool, error) {
 			return 0, false, err
 		}
 		if !('0' <= b && b <= '9') {
-			r.UnreadByte()
-			return ret, hasRead, nil
+			err = r.UnreadByte()
+			return ret, hasRead, err
 		}
 		hasRead = true
 		ret = ret*10 + uint64(b-'0')
@@ -266,8 +266,8 @@ func (d *Decoder) readEvent(event *string) error {
 		return err
 	}
 	if b != '[' {
-		d.packetReader.UnreadByte()
-		return nil
+		err = d.packetReader.UnreadByte()
+		return err
 	}
 	var buf bytes.Buffer
 	for {
