@@ -3,6 +3,7 @@ package parser
 // Type of packet
 type Type byte
 
+// Protocol packet type
 const (
 	// Connect type
 	Connect Type = iota
@@ -28,10 +29,10 @@ type Header struct {
 	Namespace string
 }
 
-
 // FrameType is the type of frames
 type FrameType byte
 
+// FrameType aliases
 const (
 	// TEXT is text type message.
 	TEXT FrameType = iota

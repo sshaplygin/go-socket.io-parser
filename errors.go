@@ -7,7 +7,9 @@ var (
 	ErrInvalidPackageType = errors.New("invalid packet type")
 	// ErrShouldBinaryPackageType
 	ErrShouldBinaryPackageType = errors.New("packet should be BINARY")
+	//ErrShouldTextPackageType
+	ErrShouldTextPackageType = errors.New("first packet should be TEXT frame")
 
 	// ErrBufferAddress
-	ErrBufferAddress = errors.New("can't get buffer address")
+	ErrBufferAddress = errors.New("could not get buffer address")
 )

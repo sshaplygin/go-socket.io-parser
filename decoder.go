@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"errors"
 	"io"
 	"io/ioutil"
 	"reflect"
@@ -33,13 +32,14 @@ func NewDecoder(fr FrameReader) *Decoder {
 	}
 }
 
-// Close
+// Close decoder reader
 func (d *Decoder) Close() error {
+	var err error
 	if d.lastFrame != nil {
-		d.lastFrame.Close()
+		err = d.lastFrame.Close()
 		d.lastFrame = nil
 	}
-	return nil
+	return err
 }
 
 type byteReader interface {
@@ -65,7 +65,7 @@ func (d *Decoder) DecodeHeader(header *Header, event *string) error {
 		return err
 	}
 	if ft != TEXT {
-		return errors.New("first packet should be TEXT frame")
+		return ErrShouldTextPackageType
 	}
 	d.lastFrame = r
 	br, ok := r.(byteReader)
@@ -219,7 +219,7 @@ func (d *Decoder) readHeader(header *Header) (uint64, error) {
 		hasNum = false
 		num = 0
 	} else {
-		d.packetReader.UnreadByte()
+		_ = d.packetReader.UnreadByte()
 	}
 
 	// check namespace
@@ -240,7 +240,7 @@ func (d *Decoder) readHeader(header *Header) (uint64, error) {
 			return bufferCount, err
 		}
 	} else {
-		d.packetReader.UnreadByte()
+		_ = d.packetReader.UnreadByte()
 	}
 
 	// read id
@@ -266,8 +266,7 @@ func (d *Decoder) readEvent(event *string) error {
 		return err
 	}
 	if b != '[' {
-		err = d.packetReader.UnreadByte()
-		return err
+		return d.packetReader.UnreadByte()
 	}
 	var buf bytes.Buffer
 	for {

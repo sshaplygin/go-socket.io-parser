@@ -13,14 +13,14 @@ import (
 type fakeWriter struct {
 	current *bytes.Buffer
 
-	typ     FrameType
+	ftype   FrameType
 	types   []FrameType
 	buffers []*bytes.Buffer
 }
 
 func (w *fakeWriter) NextWriter(ft FrameType) (io.WriteCloser, error) {
 	w.current = bytes.NewBuffer(nil)
-	w.typ = ft
+	w.ftype = ft
 	return w, nil
 }
 
@@ -29,7 +29,7 @@ func (w *fakeWriter) Write(p []byte) (int, error) {
 }
 
 func (w *fakeWriter) Close() error {
-	w.types = append(w.types, w.typ)
+	w.types = append(w.types, w.ftype)
 	w.buffers = append(w.buffers, w.current)
 	return nil
 }

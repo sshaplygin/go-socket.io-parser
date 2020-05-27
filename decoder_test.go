@@ -118,23 +118,29 @@ var tests = []testCase{
 		"msg",
 		[]interface{}{
 			1,
-		}, [][]byte{
+		},
+		[][]byte{
 			[]byte("2/woot,[\"msg\",1]\n"),
 		},
 	},
 	{
-		"NamespaceBData", Header{Event, false, 0, "/woot"},
+		"NamespaceBData",
+		Header{Event, false, 0, "/woot"},
 		"msg",
 		[]interface{}{
 			&Buffer{Data: []byte{2, 3, 4}},
-		}, [][]byte{
+		},
+		[][]byte{
 			[]byte("51-/woot,[\"msg\",{\"_placeholder\":true,\"num\":0}]\n"),
 			[]byte{2, 3, 4},
 		},
 	},
 	{
 		"NamespaceID",
-		Header{Disconnect, true, 1, "/woot"}, "", nil, [][]byte{
+		Header{Disconnect, true, 1, "/woot"},
+		"",
+		nil,
+		[][]byte{
 			[]byte("1/woot,1"),
 		},
 	},
@@ -147,7 +153,8 @@ var tests = []testCase{
 		[][]byte{
 			[]byte("2/woot,1[\"msg\",1]\n"),
 		}},
-	{"NamespaceIDBData",
+	{
+		"NamespaceIDBData",
 		Header{Event, true, 1, "/woot"},
 		"msg",
 		[]interface{}{

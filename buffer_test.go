@@ -66,7 +66,6 @@ func TestAttachmentEncodeText(t *testing.T) {
 
 	for _, test := range attachmentTests {
 		b := test.buffer
-		b.IsBinary = false
 		j, err := b.Marshal()
 		must.Nil(err)
 		t.Log(test.textEncoding, string(j))
@@ -80,7 +79,6 @@ func TestAttachmentEncodeBinary(t *testing.T) {
 
 	for _, test := range attachmentTests {
 		b := test.buffer
-		b.IsBinary = false
 		j, err := b.Marshal()
 		must.Nil(err)
 		t.Log(test.textEncoding, string(j))
@@ -114,6 +112,7 @@ func TestAttachmentDecodeBinary(t *testing.T) {
 		err := a.Unmarshal([]byte(test.binaryEncoding))
 		must.Nil(err)
 		should.True(a.IsBinary)
+		t.Log(test.buffer, a)
 		should.Equal(test.buffer.Num, a.Num)
 	}
 }

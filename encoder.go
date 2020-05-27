@@ -24,32 +24,30 @@ func NewEncoder(fw FrameWriter) *Encoder {
 	}
 }
 
-// todo: ref
-func (e *Encoder) Encode(h Header, args []interface{}) (err error) {
+// Encode packet
+func (e *Encoder) Encode(h Header, args []interface{}) error {
 	var w io.WriteCloser
-	w, err = e.fw.NextWriter(TEXT)
+	w, err := e.fw.NextWriter(TEXT)
 	if err != nil {
-		return
+		return err
 	}
 
-	var buffers [][]byte
-	buffers, err = e.writePacket(w, h, args)
-
+	buffers, err := e.writePacket(w, h, args)
 	if err != nil {
-		return
+		return err
 	}
 
 	for _, b := range buffers {
 		w, err = e.fw.NextWriter(BINARY)
 		if err != nil {
-			return
+			return err
 		}
 		err = e.writeBuffer(w, b)
 		if err != nil {
-			return
+			return err
 		}
 	}
-	return
+	return err
 }
 
 type byteWriter interface {
@@ -68,7 +66,7 @@ func (e *Encoder) writePacket(w io.WriteCloser, h Header, args []interface{}) ([
 		bw = bufio.NewWriter(w)
 	}
 
-	max := uint64(0)
+	var max uint64
 	buffers, err := e.attachBuffer(reflect.ValueOf(args), &max)
 	if err != nil {
 		return nil, err
@@ -136,6 +134,8 @@ func (e *Encoder) writeUint64(w byteWriter, i uint64) error {
 	return nil
 }
 
+const structBuffer = "Buffer"
+
 func (e *Encoder) attachBuffer(v reflect.Value, index *uint64) ([][]byte, error) {
 	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
 		v = v.Elem()
@@ -143,11 +143,15 @@ func (e *Encoder) attachBuffer(v reflect.Value, index *uint64) ([][]byte, error)
 	var ret [][]byte
 	switch v.Kind() {
 	case reflect.Struct:
-		if v.Type().Name() == "Buffer" {
+		if v.Type().Name() == structBuffer {
 			if !v.CanAddr() {
 				return nil, ErrBufferAddress
 			}
-			buffer := v.Addr().Interface().(*Buffer)
+			buffer, ok := v.Addr().Interface().(*Buffer)
+			// TODO: ref
+			if !ok {
+				return nil, nil
+			}
 			buffer.Num = *index
 			buffer.IsBinary = true
 			ret = append(ret, buffer.Data)

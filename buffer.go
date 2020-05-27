@@ -44,6 +44,7 @@ func (b *Buffer) encodeText(buf *bytes.Buffer) error {
 	return nil
 }
 
+//fixme: need return without data into struct
 func (b *Buffer) encodeBinary(buf *bytes.Buffer) error {
 	data, err := json.Marshal(b)
 	if err != nil {
