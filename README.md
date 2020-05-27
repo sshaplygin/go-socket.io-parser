@@ -7,8 +7,6 @@
 
 * Refactoring code
 * Refactoring tests
-* Move to easyjson
-* Move to codogen
 
 ## Links
 
