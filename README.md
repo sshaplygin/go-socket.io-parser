@@ -1,6 +1,6 @@
 # go-socket.io-parser
 
-## Documentaion
+## Documentation
 
 
 ## TODO
