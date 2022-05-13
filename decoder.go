@@ -278,7 +278,7 @@ func (d *Decoder) readEvent(event *string) error {
 			break
 		}
 		if b == ']' {
-			d.packetReader.UnreadByte()
+			_ = d.packetReader.UnreadByte()
 			break
 		}
 		buf.WriteByte(b)

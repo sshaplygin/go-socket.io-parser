@@ -1,0 +1,67 @@
+# More info on config here: https://github.com/golangci/golangci-lint#config-file
+run:
+  deadline: 5m
+  issues-exit-code: 1
+  tests: true
+  modules-download-mode: mod
+  skip-dirs-use-default: true
+  skip-dirs:
+    - bin
+    - vendor
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters-settings:
+  govet:
+    check-shadowing: true
+  golint:
+    min-confidence: 0
+  dupl:
+    threshold: 100
+  goconst:
+    min-len:         2
+    min-occurrences: 2
+
+
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - deadcode
+    - depguard
+    - dogsled
+    - dupl
+    - errcheck
+    - exportloopref
+    - gochecknoinits
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - gofmt
+    - goimports
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - nakedret
+    - prealloc
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - varcheck
+    - whitespace
+
+issues:
+  exclude-use-default: false
+  exclude:
+    # ST1003: method parameter userId should be userID (stylecheck)
+    - ST1003
+    - ST1000

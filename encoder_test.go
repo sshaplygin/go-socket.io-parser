@@ -55,7 +55,7 @@ func TestEncoder(t *testing.T) {
 			for i := range w.types {
 				if i == 0 {
 					should.Equal(TEXT, w.types[i])
-					should.Equal(string(test.Data[i]), string(w.buffers[i].Bytes()))
+					should.Equal(string(test.Data[i]), w.buffers[i].String())
 					continue
 				}
 				should.Equal(BINARY, w.types[i])
@@ -77,18 +77,18 @@ type bufferStruct struct {
 	Buffer *Buffer `json:"buf"`
 }
 
-type noBufferStruct struct {
-	Str   string            `json:"str"`
-	I     int               `json:"i"`
-	Array []int             `json:"array"`
-	Map   map[string]string `json:"map"`
-}
+// type noBufferStruct struct {
+// 	Str   string            `json:"str"`
+// 	I     int               `json:"i"`
+// 	Array []int             `json:"array"`
+// 	Map   map[string]string `json:"map"`
+// }
 
-type bufferInnerStruct struct {
-	I      int                `json:"i"`
-	Buffer *Buffer            `json:"buf"`
-	Inner  *bufferInnerStruct `json:"inner,omitempty"`
-}
+// type bufferInnerStruct struct {
+// 	I      int                `json:"i"`
+// 	Buffer *Buffer            `json:"buf"`
+// 	Inner  *bufferInnerStruct `json:"inner,omitempty"`
+// }
 
 var attachTests = []attachTestCase{
 	{
