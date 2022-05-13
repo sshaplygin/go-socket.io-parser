@@ -1,4 +1,4 @@
-package parser
+package go_socketio_parser
 
 import (
 	"testing"

@@ -10,5 +10,5 @@
 
 ## Links
 
-- https://github.com/socketio/socket.io-parser
-- https://github.com/socketio/socket.io-protocol
+- [parser](https://github.com/socketio/socket.io-parser)
+- [docs](https://github.com/socketio/socket.io-protocol)

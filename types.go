@@ -1,4 +1,4 @@
-package parser
+package go_socketio_parser
 
 // Type of packet
 type Type byte
