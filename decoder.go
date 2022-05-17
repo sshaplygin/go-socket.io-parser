@@ -10,63 +10,48 @@ import (
 	"strings"
 )
 
-// FrameReader
-type FrameReader interface {
-	NextReader() (FrameType, io.ReadCloser, error)
-}
+const binarySep = "-"
+const nsSep = "/"
+const packetTypeIdx = 0
+const sep = ","
+const dataSep = "["
+const attachSep = byte('\n')
 
-// Decoder
-type Decoder struct {
-	fr           FrameReader
-	lastFrame    io.ReadCloser
-	packetReader byteReader
+func Unmarshal(data []byte, h *Header, attach []interface{}) error {
+	//r := bytes.NewReader(data)
 
-	bufferCount uint64
-	isEvent     bool
-}
+	//for i, b := range data {
+	//	// read packet type
+	//	if i == 0 {
+	//		ht := Type(b - '0')
+	//		if !ht.IsValid() {
+	//			return ErrInvalidPackageType
+	//		}
+	//		h.Type = ht
+	//
+	//		continue
+	//	}
+	//
+	//	//
+	//
+	//	if b == attachSep && len(data) > i {
+	//		attachIdx = i + 1
+	//	}
+	//}
 
-// NewDecoder
-func NewDecoder(fr FrameReader) *Decoder {
-	return &Decoder{
-		fr: fr,
-	}
-}
-
-// Close decoder reader
-func (d *Decoder) Close() error {
-	var err error
-	if d.lastFrame != nil {
-		err = d.lastFrame.Close()
-		d.lastFrame = nil
-	}
-	return err
-}
-
-type byteReader interface {
-	io.Reader
-	ReadByte() (byte, error)
-	UnreadByte() error
-}
-
-// DiscardLast
-func (d *Decoder) DiscardLast() error {
-	if d.lastFrame != nil {
-		err := d.lastFrame.Close()
-		d.lastFrame = nil
-		return err
-	}
 	return nil
 }
 
-// DecodeHeader
 func (d *Decoder) DecodeHeader(header *Header, event *string) error {
 	ft, r, err := d.fr.NextReader()
 	if err != nil {
 		return err
 	}
-	if ft != TEXT {
+
+	if ft != Text {
 		return ErrShouldTextPackageType
 	}
+
 	d.lastFrame = r
 	br, ok := r.(byteReader)
 	if !ok {
@@ -84,7 +69,7 @@ func (d *Decoder) DecodeHeader(header *Header, event *string) error {
 	}
 	d.isEvent = header.Type == Event
 	if d.isEvent {
-		if err := d.readEvent(event); err != nil {
+		if err = d.readEvent(event); err != nil {
 			return err
 		}
 	}
@@ -137,7 +122,7 @@ func (d *Decoder) DecodeArgs(types []reflect.Type) ([]reflect.Value, error) {
 		}
 	}
 	for i := range ret {
-		if err := d.detachBuffer(ret[i], buffers); err != nil {
+		if err := detachBuffer(ret[i], buffers); err != nil {
 			return nil, err
 		}
 	}
@@ -288,47 +273,8 @@ func (d *Decoder) readEvent(event *string) error {
 
 func (d *Decoder) readBuffer(ft FrameType, r io.ReadCloser) ([]byte, error) {
 	defer r.Close()
-	if ft != BINARY {
+	if ft != Binary {
 		return nil, ErrShouldBinaryPackageType
 	}
 	return ioutil.ReadAll(r)
-}
-
-func (d *Decoder) detachBuffer(v reflect.Value, buffers []Buffer) error {
-	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
-		v = v.Elem()
-	}
-	switch v.Kind() {
-	case reflect.Struct:
-		if v.Type().Name() == "Buffer" {
-			if !v.CanAddr() {
-				return ErrBufferAddress
-			}
-			buffer := v.Addr().Interface().(*Buffer)
-			if buffer.IsBinary {
-				*buffer = buffers[buffer.Num]
-			}
-			return nil
-		}
-		for i := 0; i < v.NumField(); i++ {
-			if err := d.detachBuffer(v.Field(i), buffers); err != nil {
-				return err
-			}
-		}
-	case reflect.Map:
-		for _, key := range v.MapKeys() {
-			if err := d.detachBuffer(v.MapIndex(key), buffers); err != nil {
-				return err
-			}
-		}
-	case reflect.Array:
-		fallthrough
-	case reflect.Slice:
-		for i := 0; i < v.Len(); i++ {
-			if err := d.detachBuffer(v.Index(i), buffers); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }

@@ -1,0 +1,22 @@
+{
+  "name": "go-socket.io-parser",
+  "version": "1.0.0",
+  "description": "## Documentation",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sshaplygin/go-socket.io-parser.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sshaplygin/go-socket.io-parser/issues"
+  },
+  "homepage": "https://github.com/sshaplygin/go-socket.io-parser#readme",
+  "dependencies": {
+    "socket.io-parser": "^4.2.0"
+  }
+}
