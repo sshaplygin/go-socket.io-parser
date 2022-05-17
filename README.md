@@ -9,8 +9,8 @@
 + binary attachments extracted.
 ```
 
-`socketio_parser.encode()` -> `go_socketio_parser.Marshal(h Header, attach interface{}) ([]byte, error)` <br/>
-`socketio_parser.decode()` -> `go_socketio_parser.Unmarshal(data []byte, h Header, attach interface{}) error` <br/>
+`socketio_parser.encode()` -> `go_socketio_parser.Marshal(h Header, attach []interface{}) ([]byte, error)` <br/>
+`socketio_parser.decode()` -> `go_socketio_parser.Unmarshal(data []byte, h Header, attach []interface{}) error` <br/>
 
 
 ### Methods:
@@ -30,6 +30,7 @@ err := go_socketio_parser.NewEncoder(r io.Reader).Decode(h Header, attach interf
 
 * Refactoring code
 * Refactoring tests
+* Add validate test cases for invalid payload (link)[https://github.com/socketio/socket.io-parser/blob/main/test/parser.js#L134]
 
 ## Links
 
