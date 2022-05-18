@@ -113,6 +113,7 @@ func Unmarshal(data []byte, message *Packet) error {
 		_ = r.UnreadByte()
 	}
 
+	// notice: if packet type == event or binaryEvent usual exists by zero index event message.
 	decodeData, err := decodeData(r)
 	if err != nil && err != io.EOF {
 		return err
