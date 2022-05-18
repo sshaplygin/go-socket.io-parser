@@ -34,12 +34,12 @@ const (
 	BinaryAck
 )
 
-func (t Type) IsValid() bool {
-	return t <= BinaryAck
+func (i Type) IsValid() bool {
+	return i <= BinaryAck
 }
 
-func (t Type) IsBinary() bool {
-	return t >= BinaryEvent
+func (i Type) IsBinary() bool {
+	return i >= BinaryEvent
 }
 
 type Packet struct {
