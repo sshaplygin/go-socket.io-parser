@@ -11,5 +11,5 @@ var (
 	ErrShouldTextPackageType = errors.New("first packet should be TEXT frame")
 
 	// ErrBufferAddress
-	ErrBufferAddress = errors.New("could not get buffer address")
+	ErrBufferAddress = errors.New("invalid buffer address")
 )

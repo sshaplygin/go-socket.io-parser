@@ -1,9 +1,11 @@
 package go_socketio_parser
 
-// Type of packet.
+//go:generate stringer -type=Type
+
+// Type of socket.io packet.
 type Type byte
 
-// Protocol packet types.
+// socket.io protocol packet types.
 const (
 	// Connect this event is sent:
 	// * by the client when requesting access to a namespace
@@ -33,7 +35,16 @@ const (
 )
 
 func (t Type) IsValid() bool {
-	return t > BinaryAck
+	return t <= BinaryAck
+}
+
+func (t Type) IsBinary() bool {
+	return t >= BinaryEvent
+}
+
+type Packet struct {
+	Header Header
+	Data   []interface{}
 }
 
 // Header of packet.
@@ -41,16 +52,8 @@ type Header struct {
 	Type      Type   `json:"type"`
 	ID        uint64 `json:"id,omitempty"`
 	Namespace string `json:"nsp,omitempty"`
-	NeedAck   bool   `json:"-"`
 }
 
-// FrameType is the type of frames.
-type FrameType byte
-
-// FrameType aliases.
-const (
-	// Text is text type message.
-	Text FrameType = iota
-	// Binary is binary type message.
-	Binary
-)
+func (h Header) IsNeedAck() bool {
+	return h.ID > 0
+}

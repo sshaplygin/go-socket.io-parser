@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"io/ioutil"
 	"reflect"
@@ -12,11 +13,15 @@ import (
 const brByte = byte('\n')
 
 // Marshal packet header with request payload.
-func Marshal(h Header, attach []interface{}) ([]byte, error) {
+func Marshal(packet *Packet) ([]byte, error) {
+	if packet == nil {
+		return nil, errors.New("empty packet source")
+	}
+
 	buf := bytes.NewBuffer(nil)
 	bw := bufio.NewWriter(buf)
 
-	buffers, err := writePacket(bw, h, attach)
+	buffers, err := writePacket(bw, packet.Header, packet.Data)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +92,7 @@ func writePacket(bw byteWriter, h Header, data []interface{}) ([][]byte, error) 
 	}
 
 	//acknowledgment id
-	if h.NeedAck || h.ID > 0 {
+	if h.IsNeedAck() {
 		if err = writeUint64(bw, h.ID); err != nil {
 			return nil, err
 		}

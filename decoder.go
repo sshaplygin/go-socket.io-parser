@@ -1,280 +1,309 @@
 package go_socketio_parser
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
-	"io/ioutil"
-	"reflect"
-	"strings"
+	"strconv"
 )
 
-const binarySep = "-"
-const nsSep = "/"
-const packetTypeIdx = 0
-const sep = ","
-const dataSep = "["
-const attachSep = byte('\n')
+const binarySep = byte('-')
+const nsSep = byte('/')
+const nsEndSep = byte(',')
+const dataOpenSep = byte('[')
+const dataCloseSep = byte(']')
+const payloadSep = byte(',')
+const attachBinarySep = byte('\n')
+const bufferOpenDataSep = byte('{')
+const bufferCloseDataSep = byte('}')
 
-func Unmarshal(data []byte, h *Header, attach []interface{}) error {
-	//r := bytes.NewReader(data)
+func Unmarshal(data []byte, message *Packet) error {
+	if len(data) == 0 {
+		return errors.New("empty input data")
+	}
+	if message == nil {
+		return errors.New("empty output header destination")
+	}
 
-	//for i, b := range data {
-	//	// read packet type
-	//	if i == 0 {
-	//		ht := Type(b - '0')
-	//		if !ht.IsValid() {
-	//			return ErrInvalidPackageType
-	//		}
-	//		h.Type = ht
-	//
-	//		continue
-	//	}
-	//
-	//	//
-	//
-	//	if b == attachSep && len(data) > i {
-	//		attachIdx = i + 1
-	//	}
-	//}
+	r := bytes.NewReader(data)
 
-	return nil
-}
-
-func (d *Decoder) DecodeHeader(header *Header, event *string) error {
-	ft, r, err := d.fr.NextReader()
+	// read <packet type>
+	nextByte, err := r.ReadByte()
 	if err != nil {
 		return err
 	}
 
-	if ft != Text {
-		return ErrShouldTextPackageType
+	ht := Type(nextByte - zeroNumberByte)
+	if !ht.IsValid() {
+		return ErrInvalidPackageType
 	}
+	message.Header.Type = ht
 
-	d.lastFrame = r
-	br, ok := r.(byteReader)
-	if !ok {
-		br = bufio.NewReader(r)
-	}
-	d.packetReader = br
-
-	bufferCount, err := d.readHeader(header)
-	if err != nil {
+	num, err := readUint64(r)
+	if err != nil && err != io.EOF {
 		return err
 	}
-	d.bufferCount = bufferCount
-	if header.Type == BinaryEvent || header.Type == BinaryAck {
-		header.Type -= 3
+
+	if ht.IsBinary() {
+		// count binary attachments: <count of binary attachments>
+		if num != 0 {
+			nextByte, err = r.ReadByte()
+			if err != nil && err != io.EOF {
+				return err
+			}
+
+			// "-"
+			if nextByte == binarySep {
+				message.Header.Type -= binaryTypeShift
+			}
+		}
+	} else if num != 0 {
+		message.Header.ID = num
 	}
-	d.isEvent = header.Type == Event
-	if d.isEvent {
-		if err = d.readEvent(event); err != nil {
+
+	nextByte, err = r.ReadByte()
+	if err != nil && err != io.EOF {
+		return err
+	}
+
+	if err == io.EOF {
+		return nil
+	}
+
+	// read namespace
+	if nextByte == nsSep {
+		_ = r.UnreadByte()
+
+		ns, err := readString(r)
+		if err != nil && err != io.EOF {
 			return err
 		}
+
+		message.Header.Namespace = ns
+
+		if err == io.EOF {
+			return nil
+		}
 	}
+
+	if message.Header.ID == 0 {
+		//notice: this case handle example: binary packet type, buffer and without nsp.
+		if isNumberByte(nextByte) {
+			_ = r.UnreadByte()
+		}
+
+		// read acknowledgment id
+		id, err := readUint64(r)
+		if err != nil && err != io.EOF {
+			return err
+		}
+
+		if id != 0 {
+			message.Header.ID = id
+		}
+	}
+
+	if err == io.EOF {
+		return nil
+	}
+
+	// hotfix
+	if nextByte == '[' {
+		_ = r.UnreadByte()
+	}
+
+	decodeData, err := decodeData(r)
+	if err != nil && err != io.EOF {
+		return err
+	}
+
+	message.Data = decodeData
+
 	return nil
 }
 
-func (d *Decoder) DecodeArgs(types []reflect.Type) ([]reflect.Value, error) {
-	r := d.packetReader.(io.Reader)
-	if d.isEvent {
-		r = io.MultiReader(strings.NewReader("["), r)
-	}
+const zeroNumberByte = byte('0')
+const nineNumberByte = byte('9')
 
-	ret := make([]reflect.Value, len(types))
-	values := make([]interface{}, len(types))
-	for i, typ := range types {
-		if typ.Kind() == reflect.Ptr {
-			typ = typ.Elem()
+func isNumberByte(b byte) bool {
+	return zeroNumberByte <= b && b <= nineNumberByte
+}
+
+func readUint64(r *bytes.Reader) (uint64, error) {
+	var res uint64
+
+	for {
+		b, err := r.ReadByte()
+		if err != nil && err != io.EOF {
+			return 0, err
 		}
-		ret[i] = reflect.New(typ)
-		values[i] = ret[i].Interface()
-	}
-
-	if err := json.NewDecoder(r).Decode(&values); err != nil {
 		if err == io.EOF {
-			err = nil
+			return res, nil
 		}
-		_ = d.DiscardLast()
+
+		if !(zeroNumberByte <= b && b <= nineNumberByte) {
+			_ = r.UnreadByte()
+			return res, nil
+		}
+
+		res = res*10 + uint64(b-zeroNumberByte)
+	}
+}
+
+func readString(r *bytes.Reader) (string, error) {
+	var ret bytes.Buffer
+
+	for {
+		b, err := r.ReadByte()
+		if err != nil && err != io.EOF {
+			return "", err
+		}
+		if err == io.EOF || b == nsEndSep {
+			return ret.String(), nil
+		}
+
+		if err = ret.WriteByte(b); err != nil {
+			return "", err
+		}
+	}
+}
+
+func readJSONPayload(r *bytes.Reader) (interface{}, error) {
+	var buf bytes.Buffer
+	var attachJSON Buffer
+
+	for {
+		b, err := r.ReadByte()
+		if err != nil {
+			return nil, err
+		}
+
+		buf.WriteByte(b)
+
+		if b == bufferCloseDataSep {
+			break
+		}
+	}
+
+	if err := json.Unmarshal(buf.Bytes(), &attachJSON); err != nil {
 		return nil, err
 	}
 
-	//we can't use defer or call DiscardLast before decoding, because
-	//there are buffered readers involved and if we invoke .Close() json will encounter unexpected EOF.
-	_ = d.DiscardLast()
-
-	for i, typ := range types {
-		if typ.Kind() != reflect.Ptr {
-			ret[i] = ret[i].Elem()
-		}
-	}
-
-	buffers := make([]Buffer, d.bufferCount)
-	for i := range buffers {
-		ft, r, err := d.fr.NextReader()
-		if err != nil {
-			return nil, err
-		}
-		buffers[i].Data, err = d.readBuffer(ft, r)
-		if err != nil {
-			return nil, err
-		}
-	}
-	for i := range ret {
-		if err := detachBuffer(ret[i], buffers); err != nil {
-			return nil, err
-		}
-	}
-	return ret, nil
+	return &attachJSON, nil
 }
 
-func (d *Decoder) readUint64FromText(r byteReader) (uint64, bool, error) {
-	ret := uint64(0)
-	hasRead := false
-	for {
-		b, err := r.ReadByte()
-		if err != nil {
-			if hasRead {
-				return ret, true, nil
-			}
-			return 0, false, err
-		}
-		if !('0' <= b && b <= '9') {
-			err = r.UnreadByte()
-			return ret, hasRead, err
-		}
-		hasRead = true
-		ret = ret*10 + uint64(b-'0')
-	}
-}
-
-func (d *Decoder) readString(r byteReader, until byte) (string, error) {
-	var ret bytes.Buffer
-	hasRead := false
-	for {
-		b, err := r.ReadByte()
-		if err != nil {
-			if hasRead {
-				return ret.String(), nil
-			}
-			return "", err
-		}
-		if b == until {
-			return ret.String(), nil
-		}
-		if err := ret.WriteByte(b); err != nil {
-			return "", err
-		}
-		hasRead = true
-	}
-}
-
-func (d *Decoder) readHeader(header *Header) (uint64, error) {
-	typ, err := d.packetReader.ReadByte()
-	if err != nil {
-		return 0, err
-	}
-	header.Type = Type(typ - '0')
-	if header.Type > BinaryAck {
-		return 0, ErrInvalidPackageType
+func decodeData(r *bytes.Reader) ([]interface{}, error) {
+	b, err := r.ReadByte()
+	if err != nil && err != io.EOF {
+		return nil, err
 	}
 
-	num, hasNum, err := d.readUint64FromText(d.packetReader)
-	if err != nil {
-		if err == io.EOF {
-			err = nil
-		}
-		return 0, err
-	}
-	nextByte, err := d.packetReader.ReadByte()
-	if err != nil {
-		header.ID = num
-		header.NeedAck = hasNum
-		if err == io.EOF {
-			err = nil
-		}
-		return 0, err
+	if err == io.EOF {
+		return nil, err
 	}
 
-	// check if buffer count
-	var bufferCount uint64
-	if nextByte == '-' {
-		bufferCount = num
-		hasNum = false
-		num = 0
-	} else {
-		_ = d.packetReader.UnreadByte()
+	if b != dataOpenSep {
+		return nil, errors.New("invalid data segment")
 	}
 
-	// check namespace
-	nextByte, err = d.packetReader.ReadByte()
-	if err != nil {
-		if err == io.EOF {
-			err = nil
-		}
-		return bufferCount, err
-	}
-	if nextByte == '/' {
-		_ = d.packetReader.UnreadByte()
-		header.Namespace, err = d.readString(d.packetReader, ',')
-		if err != nil {
-			if err == io.EOF {
-				err = nil
-			}
-			return bufferCount, err
-		}
-	} else {
-		_ = d.packetReader.UnreadByte()
-	}
+	bufferIdx := map[int]struct{}{}
+	var data []interface{}
 
-	// read id
-	header.ID, header.NeedAck, err = d.readUint64FromText(d.packetReader)
-	if err != nil {
-		if err == io.EOF {
-			err = nil
-		}
-		return bufferCount, err
-	}
-	if !header.NeedAck {
-		// 313["data"], id has beed read at beginning, need add back.
-		header.ID = num
-		header.NeedAck = hasNum
-	}
-
-	return bufferCount, err
-}
-
-func (d *Decoder) readEvent(event *string) error {
-	b, err := d.packetReader.ReadByte()
-	if err != nil {
-		return err
-	}
-	if b != '[' {
-		return d.packetReader.UnreadByte()
-	}
+	//parse JSON-stringified payload.
+	var countData int
 	var buf bytes.Buffer
+
 	for {
-		b, err := d.packetReader.ReadByte()
-		if err != nil {
-			return err
+		b, err := r.ReadByte()
+		if err != nil && err != io.EOF {
+			return nil, err
 		}
-		if b == ',' {
+		if b == '"' {
+			continue
+		}
+		if b == bufferOpenDataSep {
+			_ = r.UnreadByte()
+			jsonPayload, err := readJSONPayload(r)
+			if err != nil {
+				return nil, err
+			}
+			bufferIdx[countData] = struct{}{}
+
+			data = append(data, jsonPayload)
+			countData++
+
+			continue
+		}
+		if b == dataCloseSep {
+			// todo action with buf
 			break
 		}
-		if b == ']' {
-			_ = d.packetReader.UnreadByte()
-			break
+
+		if b == payloadSep && buf.Len() == 0 {
+			continue
 		}
+
+		if b == payloadSep {
+			data = append(data, buf.String())
+			countData++
+
+			buf.Reset()
+
+			continue
+		}
+
 		buf.WriteByte(b)
 	}
-	return json.Unmarshal(buf.Bytes(), event)
-}
 
-func (d *Decoder) readBuffer(ft FrameType, r io.ReadCloser) ([]byte, error) {
-	defer r.Close()
-	if ft != Binary {
-		return nil, ErrShouldBinaryPackageType
+	nextByte, err := r.ReadByte()
+	if err != nil && err != io.EOF {
+		return nil, err
 	}
-	return ioutil.ReadAll(r)
+	if len(bufferIdx) > 0 && (err == io.EOF || nextByte != attachBinarySep) {
+		return nil, errors.New("not found binary attachments")
+	}
+
+	if buf.Len() > 0 {
+		str := buf.String()
+		val, err := strconv.Atoi(str)
+		if err != nil {
+			data = append(data, str)
+		} else {
+			data = append(data, val)
+		}
+	}
+
+	for idx := range bufferIdx {
+		var buf bytes.Buffer
+		for {
+			b, err := r.ReadByte()
+			if err != nil && err != io.EOF {
+				return nil, err
+			}
+
+			if buf.Len() == 0 && err == io.EOF {
+				break
+			}
+
+			if err == io.EOF || b == attachBinarySep {
+				bufferData, ok := data[idx].(*Buffer)
+				// notice: so strange behaviour
+				if !ok {
+					return nil, errors.New("")
+				}
+
+				bufferData.Data = buf.Bytes()
+				data[idx] = bufferData
+
+				buf.Reset()
+
+				break
+			}
+
+			buf.WriteByte(b)
+		}
+	}
+
+	return data, nil
 }
