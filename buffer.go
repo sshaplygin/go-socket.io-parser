@@ -1,63 +1,71 @@
 package go_socketio_parser
 
 import (
-	"bytes"
-	"encoding/json"
-	"strconv"
+	"reflect"
 )
 
-// Buffer is an binary buffer handler used in emit args. All buffers will be
+// Buffer is a binary buffer handler used in emit args. All buffers will be
 // sent as binary in the transport layer.
 type Buffer struct {
 	IsBinary bool   `json:"_placeholder"`
 	Num      uint64 `json:"num"`
 
-	Data []byte `json:"data,omitempty"`
+	Data []byte `json:"-"`
 }
 
-// Marshal marshals to JSON.
-func (b *Buffer) Marshal() ([]byte, error) {
-	var buf bytes.Buffer
-	if err := b.marshalJSONBuf(&buf); err != nil {
-		return nil, err
+const structBuffer = "Buffer"
+
+func attachBuffer(v reflect.Value, index *uint64) ([][]byte, error) {
+	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
+		v = v.Elem()
 	}
-	return buf.Bytes(), nil
-}
+	var ret [][]byte
 
-func (b *Buffer) marshalJSONBuf(buf *bytes.Buffer) error {
-	encode := b.encodeText
-	if b.IsBinary {
-		encode = b.encodeBinary
-	}
-	return encode(buf)
-}
+	switch v.Kind() {
+	case reflect.Struct:
+		if v.Type().Name() == structBuffer {
+			if !v.CanAddr() {
+				return nil, ErrBufferAddress
+			}
 
-func (b *Buffer) encodeText(buf *bytes.Buffer) error {
-	buf.WriteString("{\"type\":\"Buffer\",\"data\":[")
-	for i, d := range b.Data {
-		if i > 0 {
-			buf.WriteString(",")
+			buffer, ok := v.Addr().Interface().(*Buffer)
+			if !ok {
+				return nil, nil
+			}
+
+			buffer.Num = *index
+			buffer.IsBinary = true
+			ret = append(ret, buffer.Data)
+			*index++
+		} else {
+			for i := 0; i < v.NumField(); i++ {
+				b, err := attachBuffer(v.Field(i), index)
+				if err != nil {
+					return nil, err
+				}
+
+				ret = append(ret, b...)
+			}
 		}
-		buf.WriteString(strconv.Itoa(int(d)))
-	}
-	buf.WriteString("]}")
-	return nil
-}
+	case reflect.Array, reflect.Slice:
+		for i := 0; i < v.Len(); i++ {
+			b, err := attachBuffer(v.Index(i), index)
+			if err != nil {
+				return nil, err
+			}
 
-//fixme: need return without data into struct
-func (b *Buffer) encodeBinary(buf *bytes.Buffer) error {
-	data, err := json.Marshal(b)
-	if err != nil {
-		return err
-	}
-	_, err = buf.Write(data)
-	return err
-}
+			ret = append(ret, b...)
+		}
+	case reflect.Map:
+		for _, key := range v.MapKeys() {
+			b, err := attachBuffer(v.MapIndex(key), index)
+			if err != nil {
+				return nil, err
+			}
 
-// Unmarshal unmarshal from JSON.
-func (b *Buffer) Unmarshal(data []byte) error {
-	if err := json.Unmarshal(data, b); err != nil {
-		return err
+			ret = append(ret, b...)
+		}
 	}
-	return nil
+
+	return ret, nil
 }

@@ -17,3 +17,5 @@
 # IDE Directories
 .idea
 .vscode
+
+node_modules/
