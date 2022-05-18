@@ -22,3 +22,25 @@ func TestEncoder(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkMarshal(b *testing.B) {
+	message := &Packet{
+		Header: Header{
+			Type:      Event,
+			ID:        1,
+			Namespace: "/woot",
+		},
+		Data: []interface{}{
+			"msg",
+			&Buffer{
+				IsBinary: true,
+				Data:     []byte{2, 3, 4},
+			},
+		},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = Marshal(message)
+	}
+}

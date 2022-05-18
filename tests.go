@@ -1,63 +1,62 @@
 package go_socketio_parser
 
 type testCase struct {
-	Name       string
-	Header     Header
-	Data       []interface{} // body
-	Tmpl       string        // encoded template
-	AttachData []byte        // binary attachments extracted.
+	Name   string
+	Header Header
+	Data   []interface{} // body
+	Tmpl   string        // encoded template
 }
 
 var tests = []testCase{
-	//{
-	//	Name: "connect",
-	//	Header: Header{
-	//		Type: Connect,
-	//	},
-	//	Tmpl: "0",
-	//},
-	//{
-	//	Name: "disconnect",
-	//	Header: Header{
-	//		Type: Disconnect,
-	//	},
-	//	Tmpl: "1",
-	//},
-	//{
-	//	Name: "event",
-	//	Header: Header{
-	//		Type: Event,
-	//	},
-	//	Tmpl: "2",
-	//},
-	//{
-	//	Name: "ack",
-	//	Header: Header{
-	//		Type: Ack,
-	//	},
-	//	Tmpl: "3",
-	//},
-	//{
-	//	Name: "error",
-	//	Header: Header{
-	//		Type: Error,
-	//	},
-	//	Tmpl: "4",
-	//},
-	//{
-	//	Name: "binaryEvent",
-	//	Header: Header{
-	//		Type: BinaryEvent,
-	//	},
-	//	Tmpl: "50-",
-	//},
-	//{
-	//	Name: "binaryAck",
-	//	Header: Header{
-	//		Type: BinaryAck,
-	//	},
-	//	Tmpl: "60-",
-	//},
+	{
+		Name: "connect",
+		Header: Header{
+			Type: Connect,
+		},
+		Tmpl: "0",
+	},
+	{
+		Name: "disconnect",
+		Header: Header{
+			Type: Disconnect,
+		},
+		Tmpl: "1",
+	},
+	{
+		Name: "event",
+		Header: Header{
+			Type: Event,
+		},
+		Tmpl: "2",
+	},
+	{
+		Name: "ack",
+		Header: Header{
+			Type: Ack,
+		},
+		Tmpl: "3",
+	},
+	{
+		Name: "error",
+		Header: Header{
+			Type: Error,
+		},
+		Tmpl: "4",
+	},
+	{
+		Name: "binaryEvent",
+		Header: Header{
+			Type: BinaryEvent,
+		},
+		Tmpl: "50-",
+	},
+	{
+		Name: "binaryAck",
+		Header: Header{
+			Type: BinaryAck,
+		},
+		Tmpl: "60-",
+	},
 	{
 		Name: "event nsp id data",
 		Header: Header{
@@ -91,8 +90,7 @@ var tests = []testCase{
 				Data:     []byte{1, 2, 3},
 			},
 		},
-		Tmpl:       `51-["msg",{"_placeholder":true,"num":0}]` + string('\n') + string([]byte{1, 2, 3}),
-		AttachData: []byte{1, 2, 3},
+		Tmpl: `51-["msg",{"_placeholder":true,"num":0}]` + string('\n') + string([]byte{1, 2, 3}),
 	},
 	{
 		Name: "connect id",
@@ -160,8 +158,7 @@ var tests = []testCase{
 				Data:     []byte{2, 3, 4},
 			},
 		},
-		Tmpl:       `51-/woot,["msg",{"_placeholder":true,"num":0}]` + string('\n') + string([]byte{2, 3, 4}),
-		AttachData: []byte{2, 3, 4},
+		Tmpl: `51-/woot,["msg",{"_placeholder":true,"num":0}]` + string('\n') + string([]byte{2, 3, 4}),
 	},
 	{
 		Name: "disconnect nsp id",
@@ -198,7 +195,6 @@ var tests = []testCase{
 				Data:     []byte{2, 3, 4},
 			},
 		},
-		Tmpl:       `51-/woot,1["msg",{"_placeholder":true,"num":0}]` + string('\n') + string([]byte{2, 3, 4}),
-		AttachData: []byte{2, 3, 4},
+		Tmpl: `51-/woot,1["msg",{"_placeholder":true,"num":0}]` + string('\n') + string([]byte{2, 3, 4}),
 	},
 }

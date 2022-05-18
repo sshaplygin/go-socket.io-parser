@@ -76,3 +76,13 @@ func Test_decodeData(t *testing.T) {
 		assert.Equal(t, secondData, secondBuffer.Data)
 	})
 }
+
+func BenchmarkUnmarshal(b *testing.B) {
+	data := []byte(`51-/woot,1["msg",{"_placeholder":true,"num":0}]` + string('\n') + string([]byte{2, 3, 4}))
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var message Packet
+		_ = Unmarshal(data, &message)
+	}
+}

@@ -32,49 +32,49 @@ var attachDataTests = []attachDataTestCase{
 		},
 	},
 	{
-		"[]interface{}{Buffer}",
-		1,
-		[][]byte{
+		name: "[]interface{}{Buffer}",
+		max:  1,
+		binaries: [][]byte{
 			[]byte{1, 2},
 		},
-		[]interface{}{
+		data: []interface{}{
 			&Buffer{
 				Data: []byte{1, 2},
 			},
 		},
 	},
 	{
-		"[]interface{}{Buffer,Buffer}",
-		2,
-		[][]byte{
+		name: "[]interface{}{Buffer,Buffer}",
+		max:  2,
+		binaries: [][]byte{
 			[]byte{1, 2},
 			[]byte{3, 4},
 		},
-		[]interface{}{
+		data: []interface{}{
 			&Buffer{Data: []byte{1, 2}},
 			&Buffer{Data: []byte{3, 4}},
 		},
 	},
 	{
-		"[1]interface{}{Buffer}",
-		1,
-		[][]byte{
+		name: "[1]interface{}{Buffer}",
+		max:  1,
+		binaries: [][]byte{
 			[]byte{1, 2},
 		},
-		[]interface{}{
+		data: []interface{}{
 			&Buffer{
 				Data: []byte{1, 2},
 			},
 		},
 	},
 	{
-		"[2]interface{}{Buffer,Buffer}",
-		2,
-		[][]byte{
+		name: "[2]interface{}{Buffer,Buffer}",
+		max:  2,
+		binaries: [][]byte{
 			[]byte{1, 2},
 			[]byte{3, 4},
 		},
-		[...]interface{}{
+		data: [...]interface{}{
 			&Buffer{
 				Data: []byte{1, 2},
 			},
@@ -84,25 +84,25 @@ var attachDataTests = []attachDataTestCase{
 		},
 	},
 	{
-		"Struct{Buffer}",
-		1,
-		[][]byte{
+		name: "Struct{Buffer}",
+		max:  1,
+		binaries: [][]byte{
 			[]byte{1, 2},
 		},
-		bufferStruct{
-			3,
-			&Buffer{
+		data: bufferStruct{
+			I: 3,
+			Buffer: &Buffer{
 				Data: []byte{1, 2},
 			},
 		},
 	},
 	{
-		"map{Buffer}",
-		1,
-		[][]byte{
+		name: "map{Buffer}",
+		max:  1,
+		binaries: [][]byte{
 			[]byte{1, 2},
 		},
-		map[string]interface{}{
+		data: map[string]interface{}{
 			"data": &Buffer{
 				Data: []byte{1, 2},
 			},
@@ -122,5 +122,20 @@ func TestAttachBuffer(t *testing.T) {
 			assert.Equal(t, test.max, index)
 			assert.Equal(t, test.binaries, buf)
 		})
+	}
+}
+
+func BenchmarkAttachBuffer(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		index := uint64(0)
+
+		_, _ = attachBuffer(reflect.ValueOf(
+			map[string]interface{}{
+				"data": &Buffer{
+					Data: []byte{1, 2},
+				},
+				"i": 3,
+			},
+		), &index)
 	}
 }

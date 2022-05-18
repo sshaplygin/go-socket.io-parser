@@ -2,6 +2,9 @@
 
 ## Documentation
 
+- [parser](https://github.com/socketio/socket.io-parser)
+- [docs](https://github.com/socketio/socket.io-protocol)
+
 ### Encoding format:
 ```
 <packet type>[<count of binary attachments>-][<namespace>,][<acknowledgment id>][JSON-stringified payload without binary]
@@ -35,25 +38,3 @@ err := go_socketio_parser.NewEncoder(r io.Reader).Decode(packet *Packet)
 * Add streaming API
 * Add inner structs
 * Unit tests
-
-## Benchmarks
-
-### Compare changes
-```bash
-go test -run=NONE -bench=. ./... > old.txt
-# make changes
-go test -run=NONE -bench=. ./... > new.txt
-
-benchcmp old.txt new.txt
-```
-
-### Bench with profiles
-
-```bash
-go test -bench=. -benchmem -cpuprofile=cpu.out -memprofile=mem.out ./...
-```
-
-## Links
-
-- [parser](https://github.com/socketio/socket.io-parser)
-- [docs](https://github.com/socketio/socket.io-protocol)
